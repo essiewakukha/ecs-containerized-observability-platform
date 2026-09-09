@@ -4,8 +4,13 @@ output "alb_dns_name" {
 }
 
 output "ecr_repository_url" {
-  description = "Push your Docker images here"
+  description = "Push your app image here"
   value       = aws_ecr_repository.app.repository_url
+}
+
+output "grafana_ecr_repository_url" {
+  description = "Push your custom Grafana image here"
+  value       = aws_ecr_repository.grafana.repository_url
 }
 
 output "ecs_cluster_name" {

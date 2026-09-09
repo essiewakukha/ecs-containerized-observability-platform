@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "app/**"
+      - "monitoring/grafana/**"
       - "terraform/**"
       - ".github/workflows/deploy.yml"
   workflow_dispatch: {}
@@ -12,6 +13,7 @@ on:
 env:
   AWS_REGION: us-east-1
   ECR_REPOSITORY: observability-platform-app
+  GRAFANA_ECR_REPOSITORY: observability-platform-grafana
 
 permissions:
   id-token: write   # for OIDC auth to AWS
@@ -39,11 +41,17 @@ jobs:
         id: vars
         run: echo "image_tag=${GITHUB_SHA::8}" >> "$GITHUB_OUTPUT"
 
-      - name: Build and push image
+      - name: Build and push app image
         working-directory: ./app
         run: |
           docker build -t "${{ steps.ecr-login.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.vars.outputs.image_tag }}" .
           docker push "${{ steps.ecr-login.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.vars.outputs.image_tag }}"
+
+      - name: Build and push Grafana image
+        working-directory: ./monitoring/grafana
+        run: |
+          docker build -t "${{ steps.ecr-login.outputs.registry }}/${{ env.GRAFANA_ECR_REPOSITORY }}:${{ steps.vars.outputs.image_tag }}" .
+          docker push "${{ steps.ecr-login.outputs.registry }}/${{ env.GRAFANA_ECR_REPOSITORY }}:${{ steps.vars.outputs.image_tag }}"
 
   terraform-apply:
     needs: build-and-push
@@ -67,4 +75,5 @@ jobs:
         working-directory: ./terraform
         run: |
           terraform apply -auto-approve \
-            -var="app_image_tag=${{ needs.build-and-push.outputs.image_tag }}"
+            -var="app_image_tag=${{ needs.build-and-push.outputs.image_tag }}" \
+            -var="grafana_image_tag=${{ needs.build-and-push.outputs.image_tag }}"

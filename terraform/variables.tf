@@ -46,6 +46,12 @@ variable "app_image_tag" {
   default     = "latest"
 }
 
+variable "grafana_image_tag" {
+  description = "Docker image tag for the custom Grafana image (with provisioning baked in), pushed to ECR by CI"
+  type        = string
+  default     = "latest"
+}
+
 variable "app_container_port" {
   description = "Port the Node.js app listens on"
   type        = number

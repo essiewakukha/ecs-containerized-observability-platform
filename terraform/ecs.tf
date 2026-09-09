@@ -126,7 +126,7 @@ resource "aws_ecs_task_definition" "grafana" {
   container_definitions = jsonencode([
     {
       name      = "grafana"
-      image     = "grafana/grafana:11.1.0"
+      image     = "${aws_ecr_repository.grafana.repository_url}:${var.grafana_image_tag}"
       essential = true
       portMappings = [
         { containerPort = 3000, hostPort = 3000 }

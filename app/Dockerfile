@@ -2,7 +2,7 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 COPY . .
 
 # --- Production Stage ---
@@ -14,7 +14,7 @@ ENV NODE_ENV=production
 RUN apk add --no-cache curl
 
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm install --only=production
 COPY --from=builder /app/src ./src
 
 USER node
