@@ -1,0 +1,24 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: "webhook-notifications"
+  group_by: ["alertname"]
+  group_wait: 10s
+  group_interval: 30s
+  repeat_interval: 1h
+
+receivers:
+  - name: "webhook-notifications"
+    webhook_configs:
+      # Replace with your Slack Incoming Webhook, Discord webhook,
+      # or a Lambda Function URL that forwards to your chat app.
+      - url: "https://hooks.slack.com/services/REPLACE/WITH/YOUR_WEBHOOK"
+        send_resolved: true
+
+inhibit_rules:
+  - source_match:
+      severity: "critical"
+    target_match:
+      severity: "warning"
+    equal: ["alertname"]
