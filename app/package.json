@@ -1,0 +1,15 @@
+{
+  "name": "observability-platform-app",
+  "version": "1.0.0",
+  "description": "Sample Node.js service instrumented with Prometheus metrics for the observability platform portfolio project",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test": "echo \"no tests yet\" && exit 0"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "prom-client": "^15.1.3"
+  }
+}
