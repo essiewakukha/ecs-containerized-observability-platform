@@ -1,0 +1,18 @@
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/.terraform.lock.hcl
+terraform/*.tfvars
+
+# Node
+node_modules/
+app/node_modules/
+npm-debug.log*
+
+# Env
+.env
+.env.local
+
+# OS
+.DS_Store
