@@ -2,10 +2,11 @@ name: Build, Push & Deploy
 
 on:
   push:
-    branches: main
+    branches: [main]
     paths:
       - "app/**"
       - "monitoring/grafana/**"
+      - "monitoring/prometheus/**"
       - "terraform/**"
       - ".github/workflows/deploy.yml"
   workflow_dispatch: {}
@@ -14,13 +15,14 @@ env:
   AWS_REGION: us-east-1
   ECR_REPOSITORY: observability-platform-app
   GRAFANA_ECR_REPOSITORY: observability-platform-grafana
+  PROMETHEUS_ECR_REPOSITORY: observability-platform-prometheus
   # Suppresses the Node 20 runner warning message cleanly
-  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: "true" 
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: "true"
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    # Added here to ensure token write access during build phase
+    # Required for OIDC: lets this job request a web identity token from GitHub
     permissions:
       id-token: write
       contents: read
@@ -67,10 +69,19 @@ jobs:
           docker push \
             "${{ steps.ecr-login.outputs.registry }}/${{ env.GRAFANA_ECR_REPOSITORY }}:${{ steps.vars.outputs.image_tag }}"
 
+      - name: Build and push Prometheus image
+        working-directory: ./monitoring/prometheus
+        run: |
+          docker build \
+            -t "${{ steps.ecr-login.outputs.registry }}/${{ env.PROMETHEUS_ECR_REPOSITORY }}:${{ steps.vars.outputs.image_tag }}" .
+
+          docker push \
+            "${{ steps.ecr-login.outputs.registry }}/${{ env.PROMETHEUS_ECR_REPOSITORY }}:${{ steps.vars.outputs.image_tag }}"
+
   terraform-apply:
     needs: build-and-push
     runs-on: ubuntu-latest
-    # FIX: Explicitly grants token write permissions to the deployment runner job
+    # Required for OIDC: lets this job request a web identity token from GitHub
     permissions:
       id-token: write
       contents: read
@@ -100,4 +111,5 @@ jobs:
         run: |
           terraform apply -auto-approve \
             -var="app_image_tag=${{ needs.build-and-push.outputs.image_tag }}" \
-            -var="grafana_image_tag=${{ needs.build-and-push.outputs.image_tag }}"
+            -var="grafana_image_tag=${{ needs.build-and-push.outputs.image_tag }}" \
+            -var="prometheus_image_tag=${{ needs.build-and-push.outputs.image_tag }}"
