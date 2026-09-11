@@ -152,10 +152,22 @@ Even after Prometheus and Grafana were both fully fixed and everything else on t
 
 Net effect: those two panels are expected to read "No data" on the AWS deployment, permanently, given the current architecture. Anyone reviewing the AWS screenshots will see this — it's called out here rather than hidden, since correctly identifying *why* a metric is unavailable is itself a demonstration of understanding the platform, not a gap to be embarrassed about.
 
+**10. OIDC still failing after the role and provider existed — two more mismatches to check.**
+Even with a correctly-configured OIDC provider and IAM role in place (see #8), the pipeline continued to fail, in two stages:
+- First: `Error: Could not assume role with OIDC: The web identity token provided could not be validated.` — the token itself wasn't even getting to the authorization check.
+- Then, after adding `permissions: id-token: write` at the job level in the workflow YAML (required so the job can actually request a web identity token from GitHub in the first place — without it, `configure-aws-credentials` has nothing valid to send): `Error: ... Not authorized to perform sts:AssumeRoleWithWebIdentity` — a different failure, meaning the token now validated but the specific role wasn't authorizing the request.
+
+Diagnosed by checking each link in the chain individually rather than re-reading the trust policy JSON repeatedly (which was already correct):
+- **Confirmed the actual role name** with `aws iam get-role --role-name <name>` — a typo in a role name typed from memory (`platfrom` instead of `platform`) returned `NoSuchEntity`, which ruled out "wrong role" and pointed at "wrong secret value" instead.
+- **Confirmed the GitHub secret (`AWS_DEPLOY_ROLE_ARN`) exactly matched the real role's ARN**, copy-pasted rather than retyped — GitHub secrets don't let you view a saved value again, only overwrite it, so any prior typo is invisible until you replace it.
+- **Checked for literal formatting characters leaking into the secret value** — chat-formatted code blocks use backticks (`` ` ``) around ARNs for readability, and pasting that formatting directly into a GitHub secret field embeds the backticks into the string itself, silently invalidating it since GitHub secrets store whatever is pasted verbatim.
+- **Re-confirmed the trust policy was attached to the correct, currently-referenced role** (not a stale duplicate from an earlier setup attempt) with `aws iam get-role --role-name <name> --query 'Role.AssumeRolePolicyDocument'`.
+
+Takeaway: OIDC failures in GitHub Actions can come from several independent links in the chain — the workflow's own `permissions` block, the identity provider, the role's trust policy, *and* the secret value referencing that role — and the error message alone doesn't say which one. Verifying each link independently (rather than assuming the most recently-touched one is still the problem) is what actually narrowed it down.
+
 ## Notes on cost & scope
 
 This is sized as a portfolio/demo deployment, not a production one — a single NAT gateway and modest Fargate task sizes keep AWS costs low. Remember to `terraform destroy` when not actively demoing it, since the ALB, NAT gateway, and Fargate tasks all bill continuously while running.
 
 ## License
 
-MIT
