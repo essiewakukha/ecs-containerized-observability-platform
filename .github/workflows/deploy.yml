@@ -2,7 +2,7 @@ name: Build, Push & Deploy
 
 on:
   push:
-    branches: [main]
+    branches: main
     paths:
       - "app/**"
       - "monitoring/grafana/**"
@@ -14,14 +14,16 @@ env:
   AWS_REGION: us-east-1
   ECR_REPOSITORY: observability-platform-app
   GRAFANA_ECR_REPOSITORY: observability-platform-grafana
-
-permissions:
-  id-token: write
-  contents: read
+  # Suppresses the Node 20 runner warning message cleanly
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: "true" 
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    # Added here to ensure token write access during build phase
+    permissions:
+      id-token: write
+      contents: read
 
     outputs:
       image_tag: ${{ steps.vars.outputs.image_tag }}
@@ -68,6 +70,10 @@ jobs:
   terraform-apply:
     needs: build-and-push
     runs-on: ubuntu-latest
+    # FIX: Explicitly grants token write permissions to the deployment runner job
+    permissions:
+      id-token: write
+      contents: read
 
     steps:
       - name: Checkout repository
