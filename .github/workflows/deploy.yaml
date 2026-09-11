@@ -2,7 +2,7 @@ name: Build, Push & Deploy
 
 on:
   push:
-    branches: [main]
+    branches: main
     paths:
       - "app/**"
       - "monitoring/grafana/**"
