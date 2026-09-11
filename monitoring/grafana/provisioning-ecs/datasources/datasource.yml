@@ -1,0 +1,11 @@
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    # Cloud Map DNS name, not the docker-compose service name "prometheus"
+    # used locally — see terraform/service_discovery.tf
+    url: http://prometheus.observability.internal:9090
+    isDefault: true
+    editable: true

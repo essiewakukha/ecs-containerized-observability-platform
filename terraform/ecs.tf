@@ -178,3 +178,14 @@ resource "aws_ecs_service" "grafana" {
   depends_on = [aws_lb_listener.http]
   tags       = local.common_tags
 }
+
+# ---------------- Network Security Rules ----------------
+
+resource "aws_security_group_rule" "ecs_prometheus_self_ingress" {
+  type                     = "ingress"
+  from_port                = 9090
+  to_port                  = 9090
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.ecs_services.id
+  source_security_group_id = aws_security_group.ecs_services.id
+}
