@@ -16,22 +16,28 @@ env:
   GRAFANA_ECR_REPOSITORY: observability-platform-grafana
 
 permissions:
-  id-token: write   # for OIDC auth to AWS
+  id-token: write
   contents: read
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+
     outputs:
       image_tag: ${{ steps.vars.outputs.image_tag }}
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
+
+      - name: Check AWS identity
+        run: aws sts get-caller-identity
 
       - name: Login to Amazon ECR
         id: ecr-login
@@ -44,20 +50,28 @@ jobs:
       - name: Build and push app image
         working-directory: ./app
         run: |
-          docker build -t "${{ steps.ecr-login.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.vars.outputs.image_tag }}" .
-          docker push "${{ steps.ecr-login.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.vars.outputs.image_tag }}"
+          docker build \
+            -t "${{ steps.ecr-login.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.vars.outputs.image_tag }}" .
+
+          docker push \
+            "${{ steps.ecr-login.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.vars.outputs.image_tag }}"
 
       - name: Build and push Grafana image
         working-directory: ./monitoring/grafana
         run: |
-          docker build -t "${{ steps.ecr-login.outputs.registry }}/${{ env.GRAFANA_ECR_REPOSITORY }}:${{ steps.vars.outputs.image_tag }}" .
-          docker push "${{ steps.ecr-login.outputs.registry }}/${{ env.GRAFANA_ECR_REPOSITORY }}:${{ steps.vars.outputs.image_tag }}"
+          docker build \
+            -t "${{ steps.ecr-login.outputs.registry }}/${{ env.GRAFANA_ECR_REPOSITORY }}:${{ steps.vars.outputs.image_tag }}" .
+
+          docker push \
+            "${{ steps.ecr-login.outputs.registry }}/${{ env.GRAFANA_ECR_REPOSITORY }}:${{ steps.vars.outputs.image_tag }}"
 
   terraform-apply:
     needs: build-and-push
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -65,7 +79,11 @@ jobs:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - uses: hashicorp/setup-terraform@v3
+      - name: Check AWS identity
+        run: aws sts get-caller-identity
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
 
       - name: Terraform Init
         working-directory: ./terraform
