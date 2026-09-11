@@ -1,0 +1,38 @@
+groups:
+  - name: application-and-infra-alerts
+    rules:
+      - alert: ServiceDown
+        expr: up{job="node-app"} == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Node app target is down"
+          description: "The node-app target has been unreachable for more than 30 seconds."
+
+      - alert: ContainerCpuHigh
+        expr: sum(rate(container_cpu_usage_seconds_total{name=~"observability-app|prometheus|grafana"}[2m])) by (name) * 100 > 80
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container CPU usage above 80%"
+          description: "Container {{ $labels.name }} has exceeded 80% CPU usage for over a minute."
+
+      - alert: HighHttp5xxRate
+        expr: sum(rate(http_requests_total{status_code=~"5.."}[5m])) / sum(rate(http_requests_total[5m])) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Elevated HTTP 5xx error rate"
+          description: "More than 5% of requests have returned 5xx responses over the last 5 minutes."
+
+      - alert: HighRequestLatency
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "P95 request latency above 1s"
+          description: "95th percentile request latency has exceeded 1 second for over 2 minutes."

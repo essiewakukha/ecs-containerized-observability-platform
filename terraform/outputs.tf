@@ -13,6 +13,11 @@ output "grafana_ecr_repository_url" {
   value       = aws_ecr_repository.grafana.repository_url
 }
 
+output "prometheus_ecr_repository_url" {
+  description = "Push your custom Prometheus image here"
+  value       = aws_ecr_repository.prometheus.repository_url
+}
+
 output "ecs_cluster_name" {
   value = aws_ecs_cluster.main.name
 }

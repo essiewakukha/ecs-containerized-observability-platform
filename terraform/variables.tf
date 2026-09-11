@@ -52,6 +52,12 @@ variable "grafana_image_tag" {
   default     = "latest"
 }
 
+variable "prometheus_image_tag" {
+  description = "Docker image tag for the custom Prometheus image (with scrape config baked in), pushed to ECR by CI"
+  type        = string
+  default     = "latest"
+}
+
 variable "app_container_port" {
   description = "Port the Node.js app listens on"
   type        = number

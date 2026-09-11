@@ -1,0 +1,31 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - "alert.rules.yml"
+
+scrape_configs:
+  - job_name: "node-app"
+    metrics_path: /metrics
+    static_configs:
+      # Cloud Map (AWS service discovery) DNS name, not the docker-compose
+      # service name "app" used locally — ECS Fargate tasks have no
+      # built-in DNS between services, so this depends on the
+      # aws_service_discovery_service "app" resource in terraform/service_discovery.tf.
+      - targets: ["app.observability.internal:3000"]
+
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+# Note: no cAdvisor job here — cAdvisor requires host-level access
+# (/var/lib/docker, /sys, /rootfs) that Fargate does not expose, since
+# Fargate is a serverless container platform with no accessible host.
+# Container CPU/memory on AWS should come from ECS Container Insights /
+# CloudWatch instead (see docs/architecture.md).
+#
+# Note: no `alerting:` block here either — this project doesn't run
+# Alertmanager on ECS in this version, only locally via docker-compose.
+# Alert rules still evaluate and are visible under Prometheus > Alerts,
+# they just have nowhere to route to yet on AWS.

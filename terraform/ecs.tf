@@ -60,6 +60,10 @@ resource "aws_ecs_service" "app" {
     container_port    = var.app_container_port
   }
 
+  service_registries {
+    registry_arn = aws_service_discovery_service.app.arn
+  }
+
   depends_on = [aws_lb_listener.http]
   tags       = local.common_tags
 }
@@ -78,7 +82,7 @@ resource "aws_ecs_task_definition" "prometheus" {
   container_definitions = jsonencode([
     {
       name      = "prometheus"
-      image     = "prom/prometheus:v2.53.0"
+      image     = "${aws_ecr_repository.prometheus.repository_url}:${var.prometheus_image_tag}"
       essential = true
       portMappings = [
         { containerPort = 9090, hostPort = 9090 }
@@ -107,6 +111,10 @@ resource "aws_ecs_service" "prometheus" {
   network_configuration {
     subnets         = module.vpc.private_subnets
     security_groups = [aws_security_group.ecs_services.id]
+  }
+
+  service_registries {
+    registry_arn = aws_service_discovery_service.prometheus.arn
   }
 
   tags = local.common_tags
