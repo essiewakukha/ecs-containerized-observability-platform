@@ -2,13 +2,10 @@ name: Build, Push & Deploy
 
 on:
   push:
-    branches: main
-    paths:
-      - "app/**"
-      - "monitoring/grafana/**"
-      - "terraform/**"
-      - ".github/workflows/deploy.yml"
-  workflow_dispatch: {}
+    branches:
+      - main  # Trigger on any push to main, regardless of what files changed
+  workflow_dispatch: {} # Allows manual triggering from the GitHub UI
+
 
 env:
   AWS_REGION: us-east-1
