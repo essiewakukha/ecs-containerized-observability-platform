@@ -8,12 +8,13 @@ terraform {
     }
   }
 
-  # Uncomment and configure for team/CI use:
-  # backend "s3" {
-  #   bucket = "your-terraform-state-bucket"
-  #   key    = "observability-platform/terraform.tfstate"
-  #   region = "us-east-1"
-  # }
+  backend "s3" {
+    bucket         = "observability-platform-tfstate-207567786898"
+    key            = "observability-platform/terraform.tfstate"
+    region         = "us-east-1"
+    dynamodb_table = "observability-platform-tf-locks"
+    encrypt        = true
+  }
 }
 
 provider "aws" {
