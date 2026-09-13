@@ -169,5 +169,4 @@ Takeaway: OIDC failures in GitHub Actions can come from several independent link
 
 This is sized as a portfolio/demo deployment, not a production one — a single NAT gateway and modest Fargate task sizes keep AWS costs low. Remember to `terraform destroy` when not actively demoing it, since the ALB, NAT gateway, and Fargate tasks all bill continuously while running.
 
-## License
 
