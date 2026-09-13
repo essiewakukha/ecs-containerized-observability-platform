@@ -165,8 +165,18 @@ Diagnosed by checking each link in the chain individually rather than re-reading
 
 Takeaway: OIDC failures in GitHub Actions can come from several independent links in the chain — the workflow's own `permissions` block, the identity provider, the role's trust policy, *and* the secret value referencing that role — and the error message alone doesn't say which one. Verifying each link independently (rather than assuming the most recently-touched one is still the problem) is what actually narrowed it down.
 
+**11. OIDC "not authorized" persisted even with a verified-correct trust policy, secret, audience, and no SCP/permissions boundary — the actual cause was GitHub's token format itself.**
+After ruling out every configuration-level cause individually (role ARN matched the secret exactly, byte-for-byte; the OIDC provider's audience was exactly `sts.amazonaws.com`; the account is the AWS Organization's management account, which is structurally exempt from Service Control Policies; no permissions boundary was set; `AdministratorAccess` was attached), the trust policy still didn't match. The only way to know for certain was to stop inferring and look at the literal token AWS was receiving:
+```yaml
+- name: Debug - decode OIDC token claims
+  run: |
+    IDTOKEN=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com" | jq -r '.value')
+    echo "$IDTOKEN" | cut -d '.' -f2 | base64 -d 2>/dev/null | jq '{sub, aud, repository, repository_owner, ref, actor, event_name}'
+```
+This printed a `sub` claim of `repo:essiewakukha@137600196/ecs-containerized-observability-platform@1363028257:ref:refs/heads/main` — GitHub now appends immutable numeric account/repo IDs after the owner and repo names in the subject claim (a security hardening measure preventing trust hijacking via repo/account renaming or recreation), which the trust policy's plain `repo:essiewakukha/ecs-containerized-observability-platform:*` pattern could never match, since the ID segments sit in the middle of the string, not just at the end. Fix: updated the `StringLike` condition to `repo:essiewakukha*/ecs-containerized-observability-platform*:ref:refs/heads/main`, tolerating the ID suffix wherever GitHub inserts it.
+
+Takeaway: when every piece you can directly configure checks out and the error persists, stop re-verifying the same settings and go get the actual token/request AWS is evaluating — a JWT is just base64, and decoding it directly settles what no amount of console-clicking can.
+
 ## Notes on cost & scope
 
 This is sized as a portfolio/demo deployment, not a production one — a single NAT gateway and modest Fargate task sizes keep AWS costs low. Remember to `terraform destroy` when not actively demoing it, since the ALB, NAT gateway, and Fargate tasks all bill continuously while running.
-
-
