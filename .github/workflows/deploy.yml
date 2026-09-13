@@ -29,6 +29,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        
+      - name: Debug secret length (safe - no value exposed)
+        run: echo -n "${{ secrets.AWS_DEPLOY_ROLE_ARN }}" | wc -c
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
